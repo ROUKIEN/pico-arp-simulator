@@ -1,39 +1,51 @@
 from ursina import *
+#from math import *
 
 # create a window
 app = Ursina()
 
-# most things in ursina are Entities. An Entity is a thing you place in the world.
-# you can think of them as GameObjects in Unity or Actors in Unreal.
-# the first parameter tells us the Entity's model will be a 3d-model called 'cube'.
-# ursina includes some basic models like 'cube', 'sphere' and 'quad'.
+player = Entity(model='assets/gltf/pico_arp.gltf', scale=.4, y=2)
+plane = Entity(model='quad', z=.1, texture='assets/ligne_a_suivre.png', rotation_x=90, scale=(40, 40))
 
-# the next parameter tells us the model's color should be orange.
+# set the blueprint color as a background color
+window.color = color.color(200.87, .575, .4706)
 
-# 'scale_y=2' tells us how big the entity should be in the vertical axis, how tall it should be.
-# in ursina, positive x is right, positive y is up, and positive z is forward.
+AmbientLight()
 
-player = Entity(model='cube', color=color.orange, scale_y=2)
-
-# create a function called 'update'.
-# this will automatically get called by the engine every frame.
+cameraOffset = 30
+speed = 50
+speedRotation = 5
+robotAngle = 0
 
 def update():
-    player.x += held_keys['d'] * time.dt
-    player.x -= held_keys['a'] * time.dt
+    global robotAngle # dunno why is it needed :shrug:
+    robotAngle -= held_keys['d'] * speedRotation
+    robotAngle += held_keys['a'] * speedRotation
+    robotAngle = robotAngle%360
+    angleRad = robotAngle / 180 * pi
 
-# this part will make the player move left or right based on our input.
-# to check which keys are held down, we can check the held_keys dictionary.
-# 0 means not pressed and 1 means pressed.
-# time.dt is simply the time since the last frame. by multiplying with this, the
-# player will move at the same speed regardless of how fast the game runs.
+    direction = 0
+    if held_keys['w']:
+        direction = 1
+    elif held_keys['s']:
+        direction = -1
 
+    player.x += cos(angleRad) * (speed*direction) * time.dt
+    player.z += sin(angleRad) * (speed*direction) * time.dt
+    player.rotation_y = -robotAngle
+
+    # held_keys['w']
+
+    #player.rotation_y += held_keys['w'] * speed * time.dt
+    #player.rotation_y -= held_keys['s'] * speed * time.dt
+
+    camera.position = (player.position.x - cameraOffset, player.position.y + cameraOffset, player.position.z -cameraOffset)
+    camera.look_at(player.position)
 
 def input(key):
     if key == 'space':
         player.y += 1
         invoke(setattr, player, 'y', player.y-1, delay=.25)
-
 
 # start running the game
 app.run()

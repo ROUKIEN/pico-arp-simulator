@@ -13,8 +13,8 @@ window.color = color.color(200.87, .575, .4706)
 AmbientLight()
 
 cameraOffset = 30
-speed = 50
-speedRotation = 5
+speed = 30
+speedRotation = 4
 robotAngle = 0
 
 def update():
@@ -33,11 +33,6 @@ def update():
     player.x += cos(angleRad) * (speed*direction) * time.dt
     player.z += sin(angleRad) * (speed*direction) * time.dt
     player.rotation_y = -robotAngle
-
-    # held_keys['w']
-
-    #player.rotation_y += held_keys['w'] * speed * time.dt
-    #player.rotation_y -= held_keys['s'] * speed * time.dt
 
     camera.position = (player.position.x - cameraOffset, player.position.y + cameraOffset, player.position.z -cameraOffset)
     camera.look_at(player.position)

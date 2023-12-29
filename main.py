@@ -1,13 +1,33 @@
 from ursina import *
+from PIL import Image
 
 # create a window
 app = Ursina()
 
+followPic = 'assets/ligne_a_suivre.png'
 player = Entity(model='assets/pico_arp.gltf', scale=.4, y=2, collider='box')
-plane = Entity(model='quad', z=.1, texture='assets/ligne_a_suivre.png', rotation_x=90, scale=(40, 40))
+
+planePicture = Image.open(followPic)
+realPlaneWidth, realPlaneHeight = planePicture.size
+
+scaleFactor = 50
+
+planeWidth = realPlaneWidth/scaleFactor
+planeHeight = realPlaneHeight/scaleFactor
+
+plane = Entity(model='quad', z=.1, texture=followPic, rotation_x=90, y=1, scale=(planeWidth, planeHeight), collider='box')
+
+lineDetectorCenter = Entity(model='cube', scale=.1, parent=player, z=3.72, y=-.6, color=color.white, visible=False)
+lineDetectorLeft = Entity(model='cube', scale=.1, parent=player, z=2.98, y=-.6, x=-.71, color=color.white, visible=False)
+lineDetectorRight = Entity(model='cube', scale=.1, parent=player, z=2.98, y=-.6, x=.71, color=color.white, visible=False)
+
+lineDetectSensors = [
+    lineDetectorCenter,
+    lineDetectorLeft,
+    lineDetectorRight
+]
 
 boundary_length = 60
-
 boundaries = [
     Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=boundary_length/2, collider='box'),
     Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=-boundary_length/2, collider='box'),
@@ -18,9 +38,11 @@ boundaries = [
 for boundary in boundaries:
     boundary.y = 2
 
-
 distanceForward = -1
 distanceForwardText = Text(text=f'{distanceForward}', y=-.4, x=-.6, z=-1, scale=1, origin=(0, 0))
+floorCenterCoords = Text(text='', y=-.45, x=-.673, z=-1, scale=1, origin=(0, 0))
+floorLeftCoords = Text(text='', y=-.45, x=-.75, z=-1, scale=1, origin=(0, 0))
+floorRightCoords = Text(text='', y=-.45, x=-.80, z=-1, scale=1, origin=(0, 0))
 
 # set the blueprint color as a background color (#0563c5)
 window.color = color.color(210.63, .9746, .7725)
@@ -28,9 +50,14 @@ window.color = color.color(210.63, .9746, .7725)
 AmbientLight()
 
 cameraOffset = 30
-speed = 30
+speed = 10
 speedRotation = 4
 robotAngle = 0
+
+cameraControl = True
+
+if cameraControl:
+    EditorCamera()
 
 def intersectsWithWall(walls, robot: Entity) -> bool:
     for wall in walls:
@@ -43,7 +70,7 @@ def update():
     global robotAngle # dunno why is it needed :shrug:
     robotAngle -= held_keys['a'] * speedRotation
     robotAngle += held_keys['d'] * speedRotation
-    robotAngle = robotAngle%360
+    robotAngle = robotAngle % 360
     angleRad = robotAngle / 180 * pi
 
     direction = 0
@@ -63,24 +90,35 @@ def update():
         player.x = prevX
         player.z = prevZ
 
-    camera.position = (player.position.x - cameraOffset, player.position.y + cameraOffset, player.position.z -cameraOffset)
-    camera.look_at(player.world_position)
+    if not cameraControl:
+        camera.position = (player.position.x - cameraOffset, player.position.y + cameraOffset, player.position.z -cameraOffset)
+        camera.look_at(player.world_position)
 
-    #print(player.forward)
-    raycastPosition = (
-        player.world_position.x,
-        player.world_position.y,
-        player.world_position.z,
-    )
-    hit_info = raycast(raycastPosition, player.forward, ignore=(player,), distance=100, debug=True)
-    if hit_info.hit:
-        distanceForward = round(hit_info.distance, 3)
-        distanceForwardText.text = str(f"distance avant: {distanceForward}")
+    # ultrasonic checks
+    ultrasonicSensor = raycast(player.world_position, player.forward, ignore=(player,), distance=100, debug=False)
+    if ultrasonicSensor.hit:
+        distanceForward = round(ultrasonicSensor.distance, 3)
+        distanceForwardText.text = f"distance avant: {distanceForward}"
 
-def input(key):
-    if key == 'space':
-        player.y += 1
-        invoke(setattr, player, 'y', player.y-1, delay=.25)
+    # line detection
+    for lineDetector in lineDetectSensors:
+        castColor = color.white
+        if lineDetector.color[3] != 0:
+            castColor = lineDetector.color
+        lineDetect = raycast(lineDetector.world_position, player.down, ignore=(player,), distance=2, debug=True, color=castColor)
+        if lineDetect.hit:
+            imgX = plane.scale_x/2 + lineDetect.world_point.x
+            imgY = plane.scale_y/2 + lineDetect.world_point.z
+
+            imgX = int(imgX * scaleFactor)
+            imgY = int(imgY * scaleFactor)
+
+            pixel = plane.texture.get_pixel(imgX, imgY)
+            if pixel:
+                lineDetector.color = pixel
+                lineDetector.visible = True
+            else:
+                lineDetector.visible = False
 
 # start running the game
 app.run()

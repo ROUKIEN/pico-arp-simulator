@@ -3,7 +3,7 @@ from ursina import *
 # create a window
 app = Ursina()
 
-player = Entity(model='assets/gltf/pico_arp.gltf', scale=.4, y=2, collider='box')
+player = Entity(model='assets/pico_arp.gltf', scale=.4, y=2, collider='box')
 plane = Entity(model='quad', z=.1, texture='assets/ligne_a_suivre.png', rotation_x=90, scale=(40, 40))
 
 boundary_length = 60
@@ -17,6 +17,10 @@ boundaries = [
 
 for boundary in boundaries:
     boundary.y = 2
+
+
+distanceForward = -1
+distanceForwardText = Text(text=f'{distanceForward}', y=-.4, x=-.6, z=-1, scale=1, origin=(0, 0))
 
 # set the blueprint color as a background color (#0563c5)
 window.color = color.color(210.63, .9746, .7725)
@@ -37,8 +41,8 @@ def intersectsWithWall(walls, robot: Entity) -> bool:
 
 def update():
     global robotAngle # dunno why is it needed :shrug:
-    robotAngle -= held_keys['d'] * speedRotation
-    robotAngle += held_keys['a'] * speedRotation
+    robotAngle -= held_keys['a'] * speedRotation
+    robotAngle += held_keys['d'] * speedRotation
     robotAngle = robotAngle%360
     angleRad = robotAngle / 180 * pi
 
@@ -51,16 +55,27 @@ def update():
     prevX = player.x
     prevZ = player.z
 
-    player.x += cos(angleRad) * (speed*direction) * time.dt
-    player.z += sin(angleRad) * (speed*direction) * time.dt
-    player.rotation_y = -robotAngle
+    player.z += cos(angleRad) * (speed*direction) * time.dt
+    player.x += sin(angleRad) * (speed*direction) * time.dt
+    player.rotation_y = robotAngle
 
     if intersectsWithWall(boundaries, player):
         player.x = prevX
         player.z = prevZ
 
     camera.position = (player.position.x - cameraOffset, player.position.y + cameraOffset, player.position.z -cameraOffset)
-    camera.look_at(player.position)
+    camera.look_at(player.world_position)
+
+    #print(player.forward)
+    raycastPosition = (
+        player.world_position.x,
+        player.world_position.y,
+        player.world_position.z,
+    )
+    hit_info = raycast(raycastPosition, player.forward, ignore=(player,), distance=100, debug=True)
+    if hit_info.hit:
+        distanceForward = round(hit_info.distance, 3)
+        distanceForwardText.text = str(f"distance avant: {distanceForward}")
 
 def input(key):
     if key == 'space':

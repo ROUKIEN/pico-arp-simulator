@@ -54,9 +54,9 @@ speed = 10
 speedRotation = 4
 robotAngle = 0
 
-cameraControl = True
+isDebug = True
 
-if cameraControl:
+if isDebug:
     EditorCamera()
 
 def intersectsWithWall(walls, robot: Entity) -> bool:
@@ -90,12 +90,12 @@ def update():
         player.x = prevX
         player.z = prevZ
 
-    if not cameraControl:
+    if not isDebug:
         camera.position = (player.position.x - cameraOffset, player.position.y + cameraOffset, player.position.z -cameraOffset)
         camera.look_at(player.world_position)
 
     # ultrasonic checks
-    ultrasonicSensor = raycast(player.world_position, player.forward, ignore=(player,), distance=100, debug=False)
+    ultrasonicSensor = raycast(player.world_position, player.forward, ignore=(player,), distance=100, debug=isDebug)
     if ultrasonicSensor.hit:
         distanceForward = round(ultrasonicSensor.distance, 3)
         distanceForwardText.text = f"distance avant: {distanceForward}"
@@ -105,7 +105,7 @@ def update():
         castColor = color.white
         if lineDetector.color[3] != 0:
             castColor = lineDetector.color
-        lineDetect = raycast(lineDetector.world_position, player.down, ignore=(player,), distance=2, debug=True, color=castColor)
+        lineDetect = raycast(lineDetector.world_position, player.down, ignore=(player,), distance=2, debug=isDebug, color=castColor)
         if lineDetect.hit:
             imgX = plane.scale_x/2 + lineDetect.world_point.x
             imgY = plane.scale_y/2 + lineDetect.world_point.z

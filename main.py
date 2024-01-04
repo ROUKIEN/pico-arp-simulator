@@ -1,4 +1,5 @@
 from ursina import *
+from ursina.networking import *
 from PIL import Image
 from arp_simulator import Robot, CollisionHandler, LineDetectorHandler, DistanceSensorHandler
 
@@ -42,6 +43,44 @@ if isDebug:
 collisionHandler = CollisionHandler(bot, boundaries, camera, isDebug)
 ldh = LineDetectorHandler(plane, bot, planePicture, scaleFactor, isDebug)
 dsh = DistanceSensorHandler(bot, boundaries, distanceForwardText, isDebug)
+
+peer = Peer()
+
+def on_connect(connection, time_connected):
+    print("Connected to", connection.address)
+
+def on_disconnect(connection, time_disconnected):
+    print("Disconnected from", connection.address)
+
+def on_data(connection, data, time_received):
+    result = data.decode("utf-8")
+
+    if result == "avance":
+        bot.state = "avance"
+    elif result == "recule":
+        bot.state = "recule"
+    elif result == "stop":
+        bot.state = "stop"
+    elif result == "tourne_droite":
+        bot.state = "tourne_droite"
+    elif result == "tourne_gauche":
+        bot.state = "tourne_gauche"
+    elif result == "distance":
+        connection.send(bytes(str(bot.distance_forward), encoding="utf-8"))
+    elif result == "suivi_ligne":
+        colors = f"{bot.ls_center};{bot.ls_left};{bot.ls_right}"
+        connection.send(bytes(str(colors), encoding="utf-8"))
+    else:
+        pass
+
+peer.on_connect = on_connect
+peer.on_disconnect = on_disconnect
+peer.on_data = on_data
+
+peer.start("0.0.0.0", 12345, is_host=True)
+
+def update():
+    peer.update()
 
 # start running the game
 app.run()

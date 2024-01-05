@@ -6,7 +6,7 @@ from arp_simulator import Robot, CollisionHandler, LineDetectorHandler, Distance
 # create a window
 app = Ursina()
 
-followPic = 'assets/ligne_a_suivre.png'
+followPic = 'assets/circuit.png'
 
 bot = Robot()
 
@@ -16,7 +16,7 @@ realPlaneWidth, realPlaneHeight = planePicture.size
 scaleFactor = 50
 plane = Entity(model='quad', z=.1, texture=followPic, rotation_x=90, y=1, scale=(realPlaneWidth/scaleFactor, realPlaneHeight/scaleFactor), collider='box')
 
-boundary_length = 60
+boundary_length = 70
 boundaries = [
     Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=boundary_length/2, collider='box'),
     Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=-boundary_length/2, collider='box'),
@@ -35,7 +35,7 @@ window.color = color.color(210.63, .9746, .7725)
 
 AmbientLight()
 
-isDebug = True
+isDebug = False
 
 if isDebug:
     EditorCamera()

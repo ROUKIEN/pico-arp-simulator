@@ -4,11 +4,17 @@ from math import cos, sin, pi, floor
 
 class Robot(Entity):
     def __init__(self, **kwargs):
-        super().__init__(model='assets/pico_arp.gltf', scale=.4, y=2, collider='box')
+        super().__init__(model='assets/pico_arp_chassis.gltf', scale=.4, y=2, collider='box')
         self.angle = 0
         self.speed = 10
         self.speedRotation = 4
         self.state = "stop"
+
+        # x3.4
+        # 2
+        # y 1.3
+        self.rightWheel = Entity(name='rightWheel', parent=self, model="assets/pico_arp_wheel.gltf", x=3.4, z=1.3, y=2*.4)
+        self.leftWheel = Entity(name='leftWheel', parent=self, model="assets/pico_arp_wheel.gltf", x=-3.4, z=1.3, y=2*.4, rotation_y=180)
 
         self.lineDetectorCenter = Entity(name='center', model='cube', scale=.1, parent=self, z=3.72, y=-.6, color=color.white, visible=False)
         self.lineDetectorLeft = Entity(name='left', model='cube', scale=.1, parent=self, z=2.98, y=-.6, x=-.71, color=color.white, visible=False)
@@ -18,6 +24,9 @@ class Robot(Entity):
             setattr(self, key, value)
 
     def update(self):
+        isTurningLeft = held_keys['a'] or self.state == "tourne_gauche"
+        isTurningRight = held_keys['d'] or self.state == "tourne_droite"
+
         self.angle -= held_keys['a'] * self.speedRotation + int(self.state == "tourne_gauche") * self.speedRotation
         self.angle += held_keys['d'] * self.speedRotation + int(self.state == "tourne_droite") * self.speedRotation
 
@@ -25,10 +34,24 @@ class Robot(Entity):
         angleRad = self.angle / 180 * pi
 
         direction = 0
+
         if held_keys['w'] or self.state == "avance":
             direction = 1
         elif held_keys['s'] or self.state == "recule":
             direction = -1
+
+        wheelMultiplier = -50
+        whenTurningFactor=.56
+
+        if isTurningLeft:
+            self.leftWheel.rotation_x += self.speed*wheelMultiplier*whenTurningFactor * 1 * time.dt
+            self.rightWheel.rotation_x -= self.speed*wheelMultiplier*whenTurningFactor * -1 * time.dt
+        elif isTurningRight:
+            self.leftWheel.rotation_x += self.speed*wheelMultiplier*whenTurningFactor * 1 * time.dt
+            self.rightWheel.rotation_x -= self.speed*wheelMultiplier*whenTurningFactor * -1 * time.dt
+        else:
+            self.leftWheel.rotation_x += self.speed*wheelMultiplier * direction * time.dt
+            self.rightWheel.rotation_x -= self.speed*wheelMultiplier * direction * time.dt
 
         self.z += cos(angleRad) * (self.speed*direction) * time.dt
         self.x += sin(angleRad) * (self.speed*direction) * time.dt

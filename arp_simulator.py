@@ -10,9 +10,6 @@ class Robot(Entity):
         self.speedRotation = 4
         self.state = "stop"
 
-        # x3.4
-        # 2
-        # y 1.3
         self.rightWheel = Entity(name='rightWheel', parent=self, model="assets/pico_arp_wheel.gltf", x=3.4, z=1.3, y=2*.4)
         self.leftWheel = Entity(name='leftWheel', parent=self, model="assets/pico_arp_wheel.gltf", x=-3.4, z=1.3, y=2*.4, rotation_y=180)
 
@@ -40,18 +37,24 @@ class Robot(Entity):
         elif held_keys['s'] or self.state == "recule":
             direction = -1
 
-        wheelMultiplier = -50
-        whenTurningFactor=.56
+        wheelDiameter = 6.48
+        wheelMultiplier = 3000
+        divider = 5
+
+        wheelCircumference = wheelDiameter * pi
+        rot = self.speed * (wheelMultiplier/divider) / wheelCircumference
 
         if isTurningLeft:
-            self.leftWheel.rotation_x += self.speed*wheelMultiplier*whenTurningFactor * 1 * time.dt
-            self.rightWheel.rotation_x -= self.speed*wheelMultiplier*whenTurningFactor * -1 * time.dt
+            rot = self.speedRotation * wheelMultiplier / wheelCircumference
+            self.leftWheel.rotation_x += rot * 1 * time.dt
+            self.rightWheel.rotation_x -= -rot * 1 * time.dt
         elif isTurningRight:
-            self.leftWheel.rotation_x += self.speed*wheelMultiplier*whenTurningFactor * 1 * time.dt
-            self.rightWheel.rotation_x -= self.speed*wheelMultiplier*whenTurningFactor * -1 * time.dt
+            rot = self.speedRotation * wheelMultiplier / wheelCircumference
+            self.leftWheel.rotation_x += rot * -1 * time.dt
+            self.rightWheel.rotation_x -= rot * 1 * time.dt
         else:
-            self.leftWheel.rotation_x += self.speed*wheelMultiplier * direction * time.dt
-            self.rightWheel.rotation_x -= self.speed*wheelMultiplier * direction * time.dt
+            self.leftWheel.rotation_x += rot * -direction * time.dt
+            self.rightWheel.rotation_x -= rot * -direction * time.dt
 
         self.z += cos(angleRad) * (self.speed*direction) * time.dt
         self.x += sin(angleRad) * (self.speed*direction) * time.dt

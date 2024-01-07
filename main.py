@@ -1,27 +1,35 @@
 from ursina import *
 from ursina.networking import *
+from ursina.shaders import lit_with_shadows_shader
 from PIL import Image
 from arp_simulator import Robot, CollisionHandler, LineDetectorHandler, DistanceSensorHandler
 
-# create a window
-app = Ursina()
+isDebug = False
 
-followPic = 'assets/circuit.png'
+# create a window
+app = Ursina(
+    title="Pico ARP simulator",
+    editor_ui_enabled=isDebug,
+    development_mode=not isDebug,
+    borderless=False,
+)
+
+followPic = 'assets/circuit_cadlab.png'
 
 bot = Robot()
 
 planePicture = Image.open(followPic)
 realPlaneWidth, realPlaneHeight = planePicture.size
 
-scaleFactor = 50
-plane = Entity(model='quad', z=.1, texture=followPic, rotation_x=90, y=1, scale=(realPlaneWidth/scaleFactor, realPlaneHeight/scaleFactor), collider='box')
+scaleFactor = 40
+plane = Entity(model='quad', z=.1, texture=followPic, rotation_x=90, y=1, scale=(realPlaneWidth/scaleFactor, realPlaneHeight/scaleFactor), collider='box', shader=lit_with_shadows_shader)
 
-boundary_length = 70
+boundary_length = 102
 boundaries = [
-    Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=boundary_length/2, collider='box'),
-    Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=-boundary_length/2, collider='box'),
-    Entity(model='cube', color=color.white, scale_z=boundary_length, x=boundary_length/2, z=0, collider='box'),
-    Entity(model='cube', color=color.white, scale_z=boundary_length, x=-boundary_length/2, z=0, collider='box'),
+    Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=boundary_length/2, collider='box', shader=lit_with_shadows_shader),
+    Entity(model='cube', color=color.white, scale_x=boundary_length, x=0, z=-boundary_length/2, collider='box', shader=lit_with_shadows_shader),
+    Entity(model='cube', color=color.white, scale_z=boundary_length, x=boundary_length/2, z=0, collider='box', shader=lit_with_shadows_shader),
+    Entity(model='cube', color=color.white, scale_z=boundary_length, x=-boundary_length/2, z=0, collider='box', shader=lit_with_shadows_shader),
 ]
 
 for boundary in boundaries:
@@ -32,13 +40,22 @@ distanceForwardText = Text(text=f'{distanceForward}', y=-.4, x=-.6, z=-1, scale=
 
 # set the blueprint color as a background color (#0563c5)
 window.color = color.color(210.63, .9746, .7725)
+if not isDebug:
+    window.entity_counter.enabled = False
+    window.fps_counter.enabled = False
+    window.collider_counter.enabled = False
+    window.cog_menu.enabled = False
 
-AmbientLight()
+window.exit_button.enabled = False
 
-isDebug = False
+AmbientLight(color = color.rgba(100, 100, 100, 0.1))
 
 if isDebug:
     EditorCamera()
+
+pivot = Entity()
+dl = DirectionalLight(parent=pivot, y=10, z=15, shadows=True)
+dl.look_at(bot.world_position)
 
 collisionHandler = CollisionHandler(bot, boundaries, camera, isDebug)
 ldh = LineDetectorHandler(plane, bot, planePicture, scaleFactor, isDebug)
@@ -83,4 +100,4 @@ def update():
     peer.update()
 
 # start running the game
-app.run()
+app.run(info=isDebug)

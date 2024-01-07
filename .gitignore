@@ -3,3 +3,4 @@ build_*
 __pycache__
 main.build
 main.dist
+dist

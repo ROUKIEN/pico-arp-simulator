@@ -3,5 +3,5 @@
 # Building
 
 ```shell
-python -m nuitka ./main.py --follow-imports --standalone
+python -m build.py --name "simulator" --overwrite --ignore_folders .vscode,.git
 ```

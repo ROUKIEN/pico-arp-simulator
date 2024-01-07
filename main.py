@@ -2,6 +2,7 @@ from ursina import *
 from ursina.networking import *
 from ursina.shaders import lit_with_shadows_shader
 from PIL import Image
+import os
 from arp_simulator import Robot, CollisionHandler, LineDetectorHandler, DistanceSensorHandler
 
 isDebug = False
@@ -14,11 +15,13 @@ app = Ursina(
     borderless=False,
 )
 
-followPic = 'assets/circuit_cadlab.png'
+followPic = os.path.dirname(__file__)+'/assets/circuit_cadlab.png'
 
 bot = Robot()
 
 planePicture = Image.open(followPic)
+followPic = "circuit_cadlab"
+
 realPlaneWidth, realPlaneHeight = planePicture.size
 
 scaleFactor = 40

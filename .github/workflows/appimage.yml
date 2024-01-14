@@ -1,0 +1,20 @@
+name: Generate appimage
+
+on:
+  pull_request:
+
+jobs:
+  appimage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install appimage-builder
+        run: make setup
+      - name: build binary
+        run: make build
+      - name: Archive appimage artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: appimage
+          path: |
+            AppDir

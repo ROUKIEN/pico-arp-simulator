@@ -1,17 +1,12 @@
 APP_DIR=./AppDir
 
-BIN_APPIMAGE_BUILDER=./tools/appimage-builder-1.1.0-x86_64.AppImage
+appimage: builder
+	docker run --rm -w /app -u $(shell id -u):$(shell id -g) -v $(shell pwd):/app --cap-add SYS_ADMIN --privileged builder
+.PHONY: appimage
 
-build: $(BIN_APPIMAGE_BUILDER)
-	$(BIN_APPIMAGE_BUILDER) --skip-tests
+builder:
+	docker build  --build-arg="U_ID=$(shell id -u)" --build-arg="G_ID=$(shell id -g)" -t $@ .
+.PHONY: builder
 
 clean:
 	@rm -rf build_Linux
-
-setup: $(BIN_APPIMAGE_BUILDER)
-
-$(BIN_APPIMAGE_BUILDER):
-	mkdir -p tools
-	wget -O $@ https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage
-	chmod +x $@
-	$@ --version

@@ -8,13 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: install appimage-builder
-        run: make setup
-      - name: build binary
-        run: make build
+      - name: build appimage
+        run: make appimage
       - name: Archive appimage artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: appimage
           path: |
-            AppDir
+            *.AppImage
+            *.AppImage.zsync

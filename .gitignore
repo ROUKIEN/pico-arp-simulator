@@ -8,3 +8,8 @@ main.dist
 dist
 tools/
 AppDir/
+appimage-build
+*.AppImage
+*.AppImage.zsync
+*.swp
+tmp/

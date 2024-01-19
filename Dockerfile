@@ -16,7 +16,6 @@ RUN apt install -y python3.11 python3-pip
 RUN wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O /usr/local/bin/appimagetool && chmod +x /usr/local/bin/appimagetool
 
 RUN wget -q -O /usr/local/bin/appimage-builder https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-x86_64.AppImage && chmod +x /usr/local/bin/appimage-builder
-# RUN pip3 install git+https://github.com/AppImageCrafters/appimage-builder.git@main
 
 RUN wget -q https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py && python3.11 /tmp/get-pip.py
 

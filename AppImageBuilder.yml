@@ -2,7 +2,6 @@ version: 1
 script:
   # Remove any previous build
   - rm -rf AppDir | true
-  - ls -lah
   # Make usr and icons dirs
   - mkdir -p AppDir/usr/src
   - mkdir -p AppDir/usr/share/icons

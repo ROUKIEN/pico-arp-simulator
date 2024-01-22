@@ -18,12 +18,11 @@ AppDir:
     id: fr.rukien.pico-arp-simulator
     name: pico-arp-simulator
     icon: icon
-    version: 0.1.0
+    version: 0.1.1
     # Set the python executable as entry point
     exec: usr/bin/python3.11
     # Set the application main script path as argument. Use '$@' to forward CLI parameters
     exec_args: "$APPDIR/usr/src/main.py $@"
-    app_version: 0.1.1
   apt:
     arch: amd64
     allow_unauthenticated: true

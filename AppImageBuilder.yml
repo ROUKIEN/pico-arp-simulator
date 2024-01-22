@@ -12,10 +12,8 @@ script:
   # Install application dependencies
   - python3.11 --version
   - python3.11 -m pip install --prefix=/usr --no-cache-dir --root=AppDir -r ./requirements.txt
-
 AppDir:
   path: ./AppDir
-
   app_info:
     id: fr.rukien.pico-arp-simulator
     name: pico-arp-simulator
@@ -25,7 +23,7 @@ AppDir:
     exec: usr/bin/python3.11
     # Set the application main script path as argument. Use '$@' to forward CLI parameters
     exec_args: "$APPDIR/usr/src/main.py $@"
-
+    app_version: 0.1.1
   apt:
     arch: amd64
     allow_unauthenticated: true
@@ -36,12 +34,10 @@ AppDir:
     include:
       - python3.11
     exclude: []
-
   runtime:
     env:
       PYTHONHOME: '${APPDIR}/usr'
       PYTHONPATH: '${APPDIR}/usr/lib/python3.11/site-packages'
-
   test:
     fedora:
       image: appimagecrafters/tests-env:fedora-30
@@ -63,7 +59,6 @@ AppDir:
       image: appimagecrafters/tests-env:ubuntu-xenial
       command: ./AppRun
       use_host_x: true
-
 AppImage:
   update-information: 'gh-releases-zsync|ROUKIEN|pico-arp-simulator|latest|pico-arp-simulator-*x86_64.AppImage.zsync'
   sign-key: None

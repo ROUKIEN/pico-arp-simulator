@@ -17,7 +17,7 @@ app = Ursina(
 
 followPic = os.path.dirname(__file__)+'/assets/circuit_cadlab.png'
 
-bot = Robot()
+bots = {}
 
 planePicture = Image.open(followPic)
 followPic = "circuit_cadlab"
@@ -38,9 +38,6 @@ boundaries = [
 for boundary in boundaries:
     boundary.y = 2
 
-distanceForward = -1
-distanceForwardText = Text(text=f'{distanceForward}', y=-.4, x=-.6, z=-1, scale=1, origin=(0, 0))
-
 # set the blueprint color as a background color (#0563c5)
 window.color = color.color(210.63, .9746, .7725)
 if not isDebug:
@@ -53,27 +50,42 @@ window.exit_button.enabled = False
 
 AmbientLight(color = color.rgba(100, 100, 100, 0.1))
 
-if isDebug:
-    EditorCamera()
+cameraOffset = 50
+# EditorCamera()
+camera.position = (-cameraOffset, cameraOffset, -cameraOffset)
+camera.look_at((0, 0, 0))
 
 pivot = Entity()
 dl = DirectionalLight(parent=pivot, y=10, z=15, shadows=True)
-dl.look_at(bot.world_position)
+dl.look_at((0, 0, 0))
 
-collisionHandler = CollisionHandler(bot, boundaries, camera, isDebug)
-ldh = LineDetectorHandler(plane, bot, planePicture, scaleFactor, isDebug)
-dsh = DistanceSensorHandler(bot, boundaries, distanceForwardText, isDebug)
+collisionHandler = CollisionHandler(bots, boundaries)
+ldh = LineDetectorHandler(plane, bots, planePicture, scaleFactor, isDebug)
+dsh = DistanceSensorHandler(bots, boundaries, isDebug)
 
 peer = Peer()
 
 def on_connect(connection, time_connected):
-    print("Connected to", connection.address)
+    bots[connection.address] = Robot()
+    bots[connection.address].uuid = uuid.uuid4()
+    collisionHandler.addRobot(bots[connection.address])
+    dsh.addRobot(bots[connection.address])
+    ldh.addRobot(bots[connection.address])
+    print("Connected to", connection.address, bots[connection.address].uuid)
 
 def on_disconnect(connection, time_disconnected):
     print("Disconnected from", connection.address)
+    robot = bots.pop(connection.address, None)
+
+    collisionHandler.remove(robot)
+    dsh.remove(robot)
+    ldh.remove(robot)
+
+    destroy(robot)
 
 def on_data(connection, data, time_received):
     result = data.decode("utf-8")
+    bot = bots[connection.address]
 
     if result == "avance":
         bot.state = "avance"

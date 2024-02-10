@@ -9,6 +9,10 @@ class Robot(Entity):
         self.speed = 10
         self.speedRotation = 4
         self.state = "stop"
+        self.distance_forward = 1000
+        self.ls_left = 0
+        self.ls_center = 0
+        self.ls_right = 0
 
         self.rightWheel = Entity(name='rightWheel', parent=self, model="assets/pico_arp_wheel.gltf", x=3.4, z=1.3, y=2*.4)
         self.leftWheel = Entity(name='leftWheel', parent=self, model="assets/pico_arp_wheel.gltf", x=-3.4, z=1.3, y=2*.4, rotation_y=180)
@@ -21,20 +25,20 @@ class Robot(Entity):
             setattr(self, key, value)
 
     def update(self):
-        isTurningLeft = held_keys['a'] or self.state == "tourne_gauche"
-        isTurningRight = held_keys['d'] or self.state == "tourne_droite"
+        isTurningLeft = self.state == "tourne_gauche"
+        isTurningRight = self.state == "tourne_droite"
 
-        self.angle -= held_keys['a'] * self.speedRotation + int(self.state == "tourne_gauche") * self.speedRotation
-        self.angle += held_keys['d'] * self.speedRotation + int(self.state == "tourne_droite") * self.speedRotation
+        self.angle -= int(self.state == "tourne_gauche") * self.speedRotation
+        self.angle += int(self.state == "tourne_droite") * self.speedRotation
 
         self.angle = self.angle % 360
         angleRad = self.angle / 180 * pi
 
         direction = 0
 
-        if held_keys['w'] or self.state == "avance":
+        if self.state == "avance":
             direction = 1
-        elif held_keys['s'] or self.state == "recule":
+        elif self.state == "recule":
             direction = -1
 
         wheelDiameter = 6.48
@@ -68,94 +72,105 @@ class Robot(Entity):
         ]
 
 class DistanceSensorHandler(Entity):
-    def __init__(self, robot: Robot, walls, uiText: Text, isDebug: bool):
+    def __init__(self, robots: list[str, Robot], walls, isDebug: bool):
         super().__init__()
-        self.robot = robot
+        self.robots = robots
         self.walls = walls
-        self.uiText = uiText
         self.isDebug = isDebug
+
+    def addRobot(self, robot: Robot):
+        self.robots[robot.uuid] = robot
+
+    def remove(self, robot: Robot):
+        self.robots.pop(robot.uuid, True)
 
     def update(self):
         # ultrasonic checks
-        ultrasonicSensor = raycast(self.robot.world_position, self.robot.forward, ignore=(self.robot,), distance=100, debug=self.isDebug)
-        if ultrasonicSensor.hit:
-            self.robot.distance_forward = round(ultrasonicSensor.distance, 3)
-            self.uiText.text = f"distance avant: {self.robot.distance_forward}"
+        for uuid, robot in self.robots.items():
+            ultrasonicSensor = raycast(robot.world_position, robot.forward, ignore=self.robots.values(), distance=100, debug=self.isDebug)
+            if ultrasonicSensor.hit:
+                robot.distance_forward = round(ultrasonicSensor.distance, 3)
 
 class LineDetectorHandler(Entity):
-    def __init__(self, floor: Entity, robot: Robot, floorTexture: Image, scaleFactor: int, isDebug: bool):
+    def __init__(self, floor: Entity, robots: list[str, Robot], floorTexture: Image, scaleFactor: int, isDebug: bool):
         super().__init__()
-        self.robot = robot
+        self.robots = robots
         self.floor = floor
         self.floorTexture = floorTexture
         self.scaleFactor = scaleFactor
         self.isDebug = isDebug
 
+    def addRobot(self, robot: Robot):
+        self.robots[robot.uuid] = robot
+
+    def remove(self, robot: Robot):
+        self.robots.pop(robot.uuid, True)
+
     def update(self):
-        # line detection
-        for lineDetector in self.robot.getLineDetectorSensors():
-            castColor = color.white
-            if lineDetector.color[3] != 0:
-                castColor = lineDetector.color
-            lineDetect = raycast(lineDetector.world_position, self.robot.down, ignore=(self.robot,), distance=2, debug=self.isDebug, color=castColor)
+        for uuid, robot in self.robots.items():
+            # line detection
+            for lineDetector in robot.getLineDetectorSensors():
+                castColor = color.white
+                if lineDetector.color[3] != 0:
+                    castColor = lineDetector.color
+                lineDetect = raycast(lineDetector.world_position, robot.down, ignore=(robot,), distance=2, debug=self.isDebug, color=castColor)
 
-            # assign white value. white = 0, black = 65536
-            self.assignColor(lineDetector, (1,1,1,1))
-            if lineDetect.hit:
-                imgX = self.floor.scale_x/2 + lineDetect.world_point.x
-                imgY = self.floor.scale_y/2 + lineDetect.world_point.z
+                # assign white value. white = 0, black = 65536
+                self.assignColor(lineDetector, (1,1,1,1), robot)
+                if lineDetect.hit:
+                    imgX = self.floor.scale_x/2 + lineDetect.world_point.x
+                    imgY = self.floor.scale_y/2 + lineDetect.world_point.z
 
-                imgX = int(imgX * self.scaleFactor)
-                imgY = int(imgY * self.scaleFactor)
+                    imgX = int(imgX * self.scaleFactor)
+                    imgY = int(imgY * self.scaleFactor)
 
-                pixel = self.floor.texture.get_pixel(imgX, imgY)
-                if pixel:
-                    self.assignColor(lineDetector, pixel)
-                    lineDetector.color = pixel
-                    lineDetector.visible = True
-                else:
-                    lineDetector.visible = False
+                    pixel = self.floor.texture.get_pixel(imgX, imgY)
+                    if pixel:
+                        self.assignColor(lineDetector, pixel, robot)
+                        lineDetector.color = pixel
+                        lineDetector.visible = True
+                    else:
+                        lineDetector.visible = False
 
-    def assignColor(self, lineDetector, pixel):
+    def assignColor(self, lineDetector, pixel, robot: Robot):
         max = 65536
         grayscale = floor((.299*pixel[0]+.587*pixel[1]+.114*pixel[2])*65536)
         grayscale = max-grayscale
         match lineDetector.name:
             case "left":
-                self.robot.ls_left = grayscale
+                robot.ls_left = grayscale
             case "center":
-                self.robot.ls_center = grayscale
+                robot.ls_center = grayscale
             case "right":
-                self.robot.ls_right = grayscale
+                robot.ls_right = grayscale
 
 class CollisionHandler(Entity):
-    def __init__(self, robot: Robot, walls, camera, isDebug: bool):
+    def __init__(self, robots: dict[str, Robot], walls):
         super().__init__()
-        self.robot = robot
+        self.robots = robots
+        self.prevPos = {}
         self.walls = walls
-        self.camera = camera
-        self.isDebug = isDebug
 
-        self.cameraOffset =30
+    def addRobot(self, robot: Robot):
+        self.robots[robot.uuid] = robot
+        self.prevPos[robot.uuid] = (0, 0)
 
-        self.prevX = 0
-        self.prevZ = 0
+    def remove(self, robot: Robot):
+        self.robots.pop(robot.uuid)
+        self.prevPos.pop(robot.uuid)
 
     def update(self):
-        if self.intersectsWithWall():
-            self.robot.x = self.prevX
-            self.robot.z = self.prevZ
-        else:
-            self.prevX = self.robot.x
-            self.prevZ = self.robot.z
+        for uuid, robot in self.robots.items():
+            if self.intersectsWithWall(robot):
+                x, z = self.prevPos[uuid]
+                robot.x = x
+                robot.z = z
+            else:
+                self.prevPos[uuid] = (robot.x, robot.z)
 
-        if not self.isDebug:
-            self.camera.position = (self.robot.position.x - self.cameraOffset, self.robot.position.y + self.cameraOffset, self.robot.position.z - self.cameraOffset)
-            self.camera.look_at(self.robot.world_position)
-
-    def intersectsWithWall(self) -> bool:
+    def intersectsWithWall(self, robot) -> bool:
         for wall in self.walls:
-            intersection = wall.intersects(self.robot)
+            intersection = wall.intersects(robot)
             if intersection.hit:
                 return True
         return False

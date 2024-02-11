@@ -59,47 +59,71 @@ pivot = Entity()
 dl = DirectionalLight(parent=pivot, y=10, z=15, shadows=True)
 dl.look_at((0, 0, 0))
 
-collisionHandler = CollisionHandler(bots, boundaries)
-ldh = LineDetectorHandler(plane, bots, planePicture, scaleFactor, isDebug)
-dsh = DistanceSensorHandler(bots, boundaries, isDebug)
+collisionHandler = CollisionHandler({}, boundaries)
+ldh = LineDetectorHandler(plane, {}, planePicture, scaleFactor, isDebug)
+dsh = DistanceSensorHandler({}, boundaries, isDebug)
 
 peer = Peer()
 
 def on_connect(connection, time_connected):
-    bots[connection.address] = Robot()
-    bots[connection.address].uuid = uuid.uuid4()
-    collisionHandler.addRobot(bots[connection.address])
-    dsh.addRobot(bots[connection.address])
-    ldh.addRobot(bots[connection.address])
-    print("Connected to", connection.address, bots[connection.address].uuid)
+    print("Connected to", connection.address)
 
 def on_disconnect(connection, time_disconnected):
     print("Disconnected from", connection.address)
-    robot = bots.pop(connection.address, None)
+    for cbotUuid in bots[connection.address]:
+        robot = bots[connection.address][cbotUuid]
 
-    collisionHandler.remove(robot)
-    dsh.remove(robot)
-    ldh.remove(robot)
+        collisionHandler.remove(robot)
+        dsh.remove(robot)
+        ldh.remove(robot)
 
-    destroy(robot)
+        destroy(robot)
+
+    bots.pop(connection.address)
 
 def on_data(connection, data, time_received):
     result = data.decode("utf-8")
-    bot = bots[connection.address]
 
-    if result == "avance":
+    action = result.split(':')
+    cmd = action[0]
+    if len(action) == 2:
+        cmd_uuid = uuid.UUID(action[1])
+
+    if cmd == "new_robot":
+        new_bot = Robot()
+        new_bot.x = int(action[1]) * 2
+        new_bot.z = int(action[2]) * 2
+        new_bot.angle = int(action[3])
+        new_bot.uuid = uuid.uuid4()
+        if connection.address not in bots:
+            bots[connection.address] = {}
+        bots[connection.address][new_bot.uuid] = new_bot
+
+        collisionHandler.addRobot(bots[connection.address][new_bot.uuid])
+        dsh.addRobot(bots[connection.address][new_bot.uuid])
+        ldh.addRobot(bots[connection.address][new_bot.uuid])
+        # send the uuid to the client so that they can send instructions to that specific robot
+        connection.send(bytes(str(new_bot.uuid), encoding="utf-8"))
+        return
+
+    if cmd_uuid and cmd_uuid not in bots[connection.address]:
+        raise RuntimeError("bot not found")
+
+    bot = bots[connection.address][cmd_uuid]
+
+    if cmd == "avance":
         bot.state = "avance"
-    elif result == "recule":
+    elif cmd == "recule":
         bot.state = "recule"
-    elif result == "stop":
+    elif cmd == "stop":
         bot.state = "stop"
-    elif result == "tourne_droite":
+    elif cmd == "tourne_droite":
         bot.state = "tourne_droite"
-    elif result == "tourne_gauche":
+    elif cmd == "tourne_gauche":
         bot.state = "tourne_gauche"
-    elif result == "distance":
+    elif cmd == "distance":
         connection.send(bytes(str(bot.distance_forward), encoding="utf-8"))
-    elif result == "suivi_ligne":
+    elif cmd == "suivi_ligne":
         colors = f"{bot.ls_center};{bot.ls_left};{bot.ls_right}"
         connection.send(bytes(str(colors), encoding="utf-8"))
     else:

@@ -8,7 +8,7 @@ builder:
 .PHONY: builder
 
 clean:
-	@rm -rf build_Linux *.AppImage *.zsync AppDir appimage-build __pycache__
+	@rm -rf build_Linux *.AppImage *.zsync AppDir appimage-build __pycache__ build
 
 TAG?=
 tag: ## tag the repo
